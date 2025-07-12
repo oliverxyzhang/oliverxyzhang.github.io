@@ -1,1 +1,482 @@
-Hello world!
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>皇室战争 - 策略卡牌游戏</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* 头部样式 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(255, 204, 0, 0.5);
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo h1 {
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.7);
+            color: #ffcc00;
+        }
+        
+        .logo i {
+            font-size: 3rem;
+            color: #ffcc00;
+            animation: pulse 2s infinite;
+        }
+        
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 30px;
+        }
+        
+        nav a {
+            text-decoration: none;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 8px 15px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        nav a:hover, nav a.active {
+            background: rgba(255, 204, 0, 0.2);
+            color: #ffcc00;
+        }
+        
+        /* 英雄区域 */
+        .hero {
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                        url('https://images.contentstack.io/v3/assets/bltad9188aa9a70543a/blt9d4c0f3b0d15b9e5/5f4f4d6f4f1e6c0efcec0d6a/cr-hero.jpg') center/cover;
+            height: 500px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .hero::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 20%, #0f3460 90%);
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            padding: 20px;
+        }
+        
+        .hero h2 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 0 15px rgba(255, 204, 0, 0.8);
+            color: #ffcc00;
+        }
+        
+        .hero p {
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            display: inline-block;
+            background: linear-gradient(to right, #ffcc00, #ff9900);
+            color: #0f3460;
+            padding: 12px 35px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            border: 2px solid #ffcc00;
+            box-shadow: 0 5px 15px rgba(255, 204, 0, 0.4);
+        }
+        
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(255, 204, 0, 0.6);
+        }
+        
+        /* 游戏介绍 */
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin: 40px 0;
+            color: #ffcc00;
+            position: relative;
+        }
+        
+        .section-title::after {
+            content: "";
+            display: block;
+            width: 100px;
+            height: 4px;
+            background: #ffcc00;
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+        
+        .intro {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .intro-text {
+            background: rgba(31, 41, 61, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .intro-text h3 {
+            font-size: 1.8rem;
+            color: #ffcc00;
+            margin-bottom: 20px;
+        }
+        
+        .intro-text p {
+            line-height: 1.8;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .intro-image {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0a1930;
+        }
+        
+        .intro-image img {
+            width: 100%;
+            height: auto;
+            transition: transform 0.5s ease;
+        }
+        
+        .intro-image:hover img {
+            transform: scale(1.05);
+        }
+        
+        /* 卡牌分类 */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+        
+        .card-type {
+            background: rgba(31, 41, 61, 0.7);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-type:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 204, 0, 0.7);
+        }
+        
+        .card-type i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #ffcc00;
+        }
+        
+        .card-type h3 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #ffcc00;
+        }
+        
+        .card-type p {
+            line-height: 1.6;
+            color: #e0e0e0;
+        }
+        
+        /* 游戏模式 */
+        .modes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .mode {
+            background: rgba(31, 41, 61, 0.7);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .mode-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .mode-header i {
+            font-size: 2.5rem;
+            color: #ffcc00;
+        }
+        
+        .mode-header h3 {
+            font-size: 1.8rem;
+            color: #ffcc00;
+        }
+        
+        .mode ul {
+            padding-left: 20px;
+            margin: 15px 0;
+        }
+        
+        .mode li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        /* 页脚 */
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 50px;
+            border-top: 1px solid rgba(255, 204, 0, 0.3);
+        }
+        
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 204, 0, 0.2);
+            color: #ffcc00;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .social-links a:hover {
+            background: #ffcc00;
+            color: #0f3460;
+            transform: translateY(-5px);
+        }
+        
+        footer p {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        
+        /* 动画 */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .intro {
+                grid-template-columns: 1fr;
+            }
+            
+            header {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            nav ul {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h2 {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header>
+            <div class="logo">
+                <i class="fas fa-crown"></i>
+                <h1>皇室战争</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active">首页</a></li>
+                    <li><a href="#">卡牌介绍</a></li>
+                    <li><a href="#">游戏攻略</a></li>
+                    <li><a href="#">锦标赛</a></li>
+                    <li><a href="#">下载游戏</a></li>
+                </ul>
+            </nav>
+        </header>
+        
+        <!-- 英雄区域 -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>策略与技巧的终极对决</h2>
+                <p>皇室战争是一款融合了卡牌收集、塔防和MOBA元素的实时对战游戏。收集并升级卡牌，打造属于你的终极牌组，在竞技场中击败对手！</p>
+                <a href="#" class="btn">立即下载</a>
+            </div>
+        </section>
+        
+        <!-- 游戏介绍 -->
+        <h2 class="section-title">游戏介绍</h2>
+        <section class="intro">
+            <div class="intro-text">
+                <h3>关于皇室战争</h3>
+                <p>皇室战争(Clash Royale)是由Supercell开发的一款实时多人对战手机游戏，于2016年全球发布。游戏结合了卡牌收集、塔防和MOBA元素，玩家需要组建卡组，在竞技场中与对手展开3分钟的快节奏对战。</p>
+                <p>游戏中有上百张独特的卡牌，分为普通、稀有、史诗和传奇四种稀有度。每张卡牌都代表一个部队、法术或建筑，拥有独特的属性和技能。</p>
+                <p>玩家需要通过开启宝箱获得卡牌和金币，升级卡牌提升战斗力，并在天梯模式中提升奖杯数，解锁新的竞技场和卡牌。</p>
+            </div>
+            <div class="intro-image">
+                <img src="https://www.supercell.com/images/7b6d3c1b8e35b4d8b2a2d1d9c3d3f0d9/946x532/townhall.webp" alt="皇室战争游戏截图">
+            </div>
+        </section>
+        
+        <!-- 卡牌分类 -->
+        <h2 class="section-title">卡牌分类</h2>
+        <section class="cards">
+            <div class="card-type">
+                <i class="fas fa-shield-alt"></i>
+                <h3>部队卡</h3>
+                <p>部队卡可以部署在战场上攻击敌人。分为地面部队、空中部队、近战和远程等不同类型。合理搭配部队卡是获胜的关键。</p>
+            </div>
+            
+            <div class="card-type">
+                <i class="fas fa-magic"></i>
+                <h3>法术卡</h3>
+                <p>法术卡可以立即对战场造成影响，如伤害敌军、治疗友军或改变地形。法术卡使用时机至关重要，可以扭转战局。</p>
+            </div>
+            
+            <div class="card-type">
+                <i class="fas fa-fort-awesome"></i>
+                <h3>建筑卡</h3>
+                <p>建筑卡可以部署在己方战场，持续发挥作用。有些建筑生产部队，有些提供防御，合理使用建筑卡能有效控制战场节奏。</p>
+            </div>
+        </section>
+        
+        <!-- 游戏模式 -->
+        <h2 class="section-title">游戏模式</h2>
+        <section class="modes">
+            <div class="mode">
+                <div class="mode-header">
+                    <i class="fas fa-trophy"></i>
+                    <h3>天梯对战</h3>
+                </div>
+                <p>玩家通过匹配系统与其他玩家进行1v1对战，获胜获得奖杯，失败则失去奖杯。随着奖杯数量提升，玩家可以解锁新的竞技场和卡牌。</p>
+                <ul>
+                    <li>经典1v1对战</li>
+                    <li>提升奖杯解锁新竞技场</li>
+                    <li>每赛季重置并发放奖励</li>
+                </ul>
+            </div>
+            
+            <div class="mode">
+                <div class="mode-header">
+                    <i class="fas fa-users"></i>
+                    <h3>部落战</h3>
+                </div>
+                <p>加入部落，与部落成员一起参与部落战。在船战中为部落船收集奖杯，在终极战中进行卡牌收集和最终决战，赢取丰厚奖励。</p>
+                <ul>
+                    <li>与部落成员合作</li>
+                    <li>船战和终极战两个阶段</li>
+                    <li>赢取部落宝箱</li>
+                </ul>
+            </div>
+            
+            <div class="mode">
+                <div class="mode-header">
+                    <i class="fas fa-dice"></i>
+                    <h3>挑战模式</h3>
+                </div>
+                <p>特殊规则下的限时游戏模式，提供不同的游戏体验和丰厚奖励。包括经典挑战、终极挑战、锦标赛和各种主题活动模式。</p>
+                <ul>
+                    <li>特殊规则和玩法</li>
+                    <li>赢得12场胜利获得最大奖励</li>
+                    <li>限时主题活动</li>
+                </ul>
+            </div>
+        </section>
+        
+        <!-- 页脚 -->
+        <footer>
+            <div class="social-links">
+                <a href="#"><i class="fab fa-facebook-f"></i></a>
+                <a href="#"><i class="fab fa-twitter"></i></a>
+                <a href="#"><i class="fab fa-instagram"></i></a>
+                <a href="#"><i class="fab fa-youtube"></i></a>
+            </div>
+            <p>© 2023 皇室战争中文站 | 本网站为粉丝制作，与Supercell官方无关</p>
+            <p>Supercell, Clash Royale and related logos are trademarks of Supercell.</p>
+        </footer>
+    </div>
+</body>
+</html>
