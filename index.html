@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>南京市医院分布与泰森多边形分析</title>
-    <!-- MapLibre GL JS -->
-    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet">
-    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+    <!-- MapLibre GL JS 5.6.1 -->
+    <script src="https://unpkg.com/maplibre-gl@1.15.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@1.15.2/dist/maplibre-gl.css" rel="stylesheet" />
     <!-- Turf.js -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
     <style>
@@ -249,18 +249,42 @@
                 order: -1;
             }
         }
+        
+        .map-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            max-width: 300px;
+        }
+        
+        .map-overlay h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            border-bottom: 1px solid #3498db;
+            padding-bottom: 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>南京市医院分布与泰森多边形分析</h1>
-            <p class="subtitle">使用MapLibre GL JS和Turf.js可视化南京市主要医院分布，并通过泰森多边形分析医院服务覆盖区域</p>
+            <p class="subtitle">使用MapLibre GL JS 5.6.1和Turf.js可视化南京市主要医院分布，并通过泰森多边形分析医院服务覆盖区域</p>
         </header>
         
         <div class="content">
             <div id="map-container">
                 <div id="map"></div>
+                <div class="map-overlay">
+                    <h3>泰森多边形说明</h3>
+                    <p>每个多边形区域表示距离该医院最近的服务区域，边界是到两个医院距离相等的点。</p>
+                    <p>点击医院点查看详细信息，使用控制面板调整显示选项。</p>
+                </div>
             </div>
             
             <div class="info-panel">
@@ -295,8 +319,8 @@
                         <div class="stat-label">医院数量</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" id="area-size">6,598</div>
-                        <div class="stat-label">总面积(km²)</div>
+                        <div class="stat-value" id="avg-area">7.2</div>
+                        <div class="stat-label">平均区域(km²)</div>
                     </div>
                 </div>
                 
@@ -334,12 +358,13 @@
                 <li>每个多边形区域表示距离该医院最近的服务区域</li>
                 <li>多边形边界表示到两个相邻医院距离相等的位置</li>
                 <li>区域大小反映了医院的服务覆盖范围</li>
+                <li>颜色深浅表示该区域面积大小（深色=大区域）</li>
             </ul>
             <p>这种分析有助于城市规划者了解医疗资源的分布均衡性，识别服务覆盖不足的区域，并为新医院选址提供科学依据。</p>
         </div>
         
         <footer>
-            <p>© 2023 南京市医疗资源分布可视化 | 使用 MapLibre GL JS 和 Turf.js 构建</p>
+            <p>© 2023 南京市医疗资源分布可视化 | 使用 MapLibre GL JS 5.6.1 和 Turf.js 构建</p>
         </footer>
     </div>
 
@@ -362,21 +387,21 @@
         
         // 模拟医院数据（名称、坐标）
         const hospitals = [
-            {name: "江苏省人民医院", coordinates: [118.78, 32.05]},
-            {name: "南京鼓楼医院", coordinates: [118.79, 32.07]},
-            {name: "东南大学附属中大医院", coordinates: [118.80, 32.06]},
-            {name: "南京市第一医院", coordinates: [118.79, 32.03]},
-            {name: "南京军区总医院", coordinates: [118.83, 32.04]},
-            {name: "南京市儿童医院", coordinates: [118.78, 32.04]},
-            {name: "南京市中医院", coordinates: [118.80, 32.03]},
-            {name: "江苏省中医院", coordinates: [118.79, 32.05]},
-            {name: "南京明基医院", coordinates: [118.75, 32.02]},
-            {name: "南京市妇幼保健院", coordinates: [118.80, 32.05]},
-            {name: "南京市口腔医院", coordinates: [118.79, 32.05]},
-            {name: "南京市脑科医院", coordinates: [118.78, 32.05]},
-            {name: "南京市第二医院", coordinates: [118.82, 32.04]},
-            {name: "南京市胸科医院", coordinates: [118.81, 32.04]},
-            {name: "江北人民医院", coordinates: [118.70, 32.15]}
+            {name: "江苏省人民医院", coordinates: [118.78, 32.05], address: "广州路300号"},
+            {name: "南京鼓楼医院", coordinates: [118.79, 32.07], address: "中山路321号"},
+            {name: "东南大学附属中大医院", coordinates: [118.80, 32.06], address: "丁家桥87号"},
+            {name: "南京市第一医院", coordinates: [118.79, 32.03], address: "长乐路68号"},
+            {name: "南京军区总医院", coordinates: [118.83, 32.04], address: "中山东路305号"},
+            {name: "南京市儿童医院", coordinates: [118.78, 32.04], address: "广州路72号"},
+            {name: "南京市中医院", coordinates: [118.80, 32.03], address: "大明路157号"},
+            {name: "江苏省中医院", coordinates: [118.79, 32.05], address: "汉中路155号"},
+            {name: "南京明基医院", coordinates: [118.75, 32.02], address: "建邺区河西大街71号"},
+            {name: "南京市妇幼保健院", coordinates: [118.80, 32.05], address: "莫愁路天妃巷123号"},
+            {name: "南京市口腔医院", coordinates: [118.79, 32.05], address: "中央路30号"},
+            {name: "南京市脑科医院", coordinates: [118.78, 32.05], address: "广州路264号"},
+            {name: "南京市第二医院", coordinates: [118.82, 32.04], address: "钟阜路1-1号"},
+            {name: "南京市胸科医院", coordinates: [118.81, 32.04], address: "广州路215号"},
+            {name: "江北人民医院", coordinates: [118.70, 32.15], address: "大厂街道葛关路552号"}
         ];
         
         // 初始化地图
@@ -408,7 +433,7 @@
                 source: 'nanjing-boundary',
                 paint: {
                     'fill-color': '#42e695',
-                    'fill-opacity': 0.2
+                    'fill-opacity': 0.15
                 }
             });
             
@@ -418,7 +443,8 @@
                 source: 'nanjing-boundary',
                 paint: {
                     'line-color': '#3bb2b8',
-                    'line-width': 3
+                    'line-width': 3,
+                    'line-dasharray': [2, 2]
                 }
             });
             
@@ -426,7 +452,8 @@
             const hospitalFeatures = hospitals.map(hospital => ({
                 type: 'Feature',
                 properties: {
-                    name: hospital.name
+                    name: hospital.name,
+                    address: hospital.address
                 },
                 geometry: {
                     type: 'Point',
@@ -476,17 +503,60 @@
             
             // 生成泰森多边形
             generateVoronoi();
+            
+            // 添加点击医院弹出信息框
+            map.on('click', 'hospitals', (e) => {
+                const name = e.features[0].properties.name;
+                const address = e.features[0].properties.address;
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                
+                // 确保弹出框不会覆盖被点击的点
+                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                }
+                
+                new maplibregl.Popup()
+                    .setLngLat(coordinates)
+                    .setHTML(`
+                        <div style="padding: 10px;">
+                            <h3 style="margin-bottom: 5px; color: #d43f3f;">${name}</h3>
+                            <p><strong>地址:</strong> ${address}</p>
+                            <p style="margin-top: 8px; font-size: 0.9em; color: #666;">
+                                点击地图其他位置关闭此信息
+                            </p>
+                        </div>
+                    `)
+                    .addTo(map);
+            });
+            
+            // 改变鼠标指针样式
+            map.on('mouseenter', 'hospitals', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+            
+            map.on('mouseleave', 'hospitals', () => {
+                map.getCanvas().style.cursor = '';
+            });
         });
         
-        // 生成泰森多边形的函数
+        // 生成泰森多边形的函数 - 使用Turf.js
         function generateVoronoi() {
             // 获取医院点
             const points = turf.featureCollection(
                 hospitals.map(h => turf.point(h.coordinates))
             );
             
-            // 创建泰森多边形
-            const voronoiPolygons = turf.voronoi(points, {bbox: [118.30, 31.30, 119.20, 32.60]});
+            // 创建泰森多边形 - 使用南京市边界作为bbox
+            const voronoiPolygons = turf.voronoi(points, {
+                bbox: [118.30, 31.30, 119.20, 32.60]
+            });
+            
+            // 计算每个多边形的面积并添加到属性中
+            voronoiPolygons.features = voronoiPolygons.features.map(feature => {
+                const area = turf.area(feature);
+                feature.properties.area = area;
+                return feature;
+            });
             
             // 添加到地图
             if (map.getSource('voronoi')) {
@@ -502,14 +572,37 @@
                     type: 'fill',
                     source: 'voronoi',
                     paint: {
-                        'fill-color': '#4facfe',
-                        'fill-opacity': 0.3,
-                        'fill-outline-color': '#00f2fe'
+                        'fill-color': [
+                            'interpolate',
+                            ['linear'],
+                            ['get', 'area'],
+                            5000000, '#a8d8ff',  // 较小区域
+                            15000000, '#4facfe', // 中等区域
+                            25000000, '#0150c9'  // 较大区域
+                        ],
+                        'fill-opacity': 0.35,
+                        'fill-outline-color': '#0150c9'
+                    }
+                });
+                
+                map.addLayer({
+                    id: 'voronoi-outline',
+                    type: 'line',
+                    source: 'voronoi',
+                    paint: {
+                        'line-color': '#0150c9',
+                        'line-width': 1.5,
+                        'line-dasharray': [2, 2]
                     }
                 });
                 
                 voronoiLayerId = 'voronoi-layer';
             }
+            
+            // 更新平均区域面积
+            const totalArea = voronoiPolygons.features.reduce((sum, feature) => sum + feature.properties.area, 0);
+            const avgArea = (totalArea / voronoiPolygons.features.length / 1000000).toFixed(1);
+            document.getElementById('avg-area').textContent = avgArea;
         }
         
         // 添加模拟医院
@@ -520,7 +613,8 @@
                 coordinates: [
                     118.30 + Math.random() * (119.20 - 118.30),
                     31.30 + Math.random() * (32.60 - 31.30)
-                ]
+                ],
+                address: "随机生成位置"
             };
             
             hospitals.push(newHospital);
@@ -535,7 +629,8 @@
             const hospitalFeatures = hospitals.map(hospital => ({
                 type: 'Feature',
                 properties: {
-                    name: hospital.name
+                    name: hospital.name,
+                    address: hospital.address
                 },
                 geometry: {
                     type: 'Point',
@@ -552,12 +647,14 @@
         // 切换泰森多边形显示
         document.getElementById('toggle-voronoi').addEventListener('click', function() {
             if (voronoiLayerId) {
-                const visibility = map.getLayoutProperty(voronoiLayerId, 'visibility');
-                if (visibility === 'visible') {
-                    map.setLayoutProperty(voronoiLayerId, 'visibility', 'none');
+                const voronoiVisibility = map.getLayoutProperty('voronoi-layer', 'visibility');
+                if (voronoiVisibility === 'visible') {
+                    map.setLayoutProperty('voronoi-layer', 'visibility', 'none');
+                    map.setLayoutProperty('voronoi-outline', 'visibility', 'none');
                     this.textContent = '显示泰森多边形';
                 } else {
-                    map.setLayoutProperty(voronoiLayerId, 'visibility', 'visible');
+                    map.setLayoutProperty('voronoi-layer', 'visibility', 'visible');
+                    map.setLayoutProperty('voronoi-outline', 'visibility', 'visible');
                     this.textContent = '隐藏泰森多边形';
                 }
             }
@@ -581,7 +678,8 @@
         document.getElementById('reset-view').addEventListener('click', function() {
             map.flyTo({
                 center: [118.7969, 32.0603],
-                zoom: 11
+                zoom: 11,
+                essential: true
             });
         });
     </script>
