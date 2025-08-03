@@ -4,7 +4,8 @@
   <meta charset="utf‑8">
   <title>南京 Isochrone 体验</title>
   <meta name="viewport" content="width=device-width,initial‑scale=1">
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.18.2/mapbox-gl.css" rel="stylesheet">
+  <script src='https://api.mapbox.com/mapbox‑gl‑js/v2.6.0/mapbox‑gl.js'></script>
+  <link href='https://api.mapbox.com/mapbox‑gl‑js/v2.6.0/mapbox‑gl.css' rel='stylesheet' />  
   <style>
     body, html {margin:0;height:100%;}
     #map {position:absolute;top:0;bottom:0;width:100%;}
@@ -48,8 +49,6 @@
     勿频繁点击（API 限制 300 req/min）‍
   </div>
 </div>
-
-<script src="https://api.mapbox.com/mapbox-gl-js/v2.18.2/mapbox-gl.js"></script>
 <script>
   mapboxgl.accessToken = 'eyJ1Ijoiemhhb2JvIiwiYSI6ImNqaW85NzNrdDA3OXczcHQ5aTZvYmtjc2gifQ';
   const map = new mapboxgl.Map({
