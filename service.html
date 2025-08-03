@@ -1,123 +1,101 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="utf‑8">
-  <title>南京 Isochrone 体验</title>
-  <meta name="viewport" content="width=device-width,initial‑scale=1">
-  <script src='https://api.mapbox.com/mapbox‑gl‑js/v2.6.0/mapbox‑gl.js'></script>
-  <link href='https://api.mapbox.com/mapbox‑gl‑js/v2.6.0/mapbox‑gl.css' rel='stylesheet' />  
+  <meta charset="UTF-8">
+  <title>南京 Isochrone Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Mapbox GL CSS & JS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
+
   <style>
-    body, html {margin:0;height:100%;}
-    #map {position:absolute;top:0;bottom:0;width:100%;}
+    body { margin: 0; padding: 0; }
+    #map { width: 100%; height: 100vh; }
     #controls {
-      position: absolute; top: 20px; left: 20px;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 12px; border-radius: 6px;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 999;
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
       font-family: sans-serif;
-      box-shadow: 0 0 8px rgba(0,0,0,0.2);
-      z-index: 1;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
-    #controls select, #controls input {
-      width: 100%; margin-top: 6px; font-size: 14px;
+    select, input {
+      width: 120px;
+      margin: 4px 0;
     }
-    #controls button {
-      margin-top: 10px; width: 100%;
-      padding: 6px; font-size: 15px;
-      background-color: #3887be; color: #fff;
-      border: none; border-radius: 4px;
-      cursor: pointer;
-    }
-    #controls button:hover { background-color: #2a6e90; }
   </style>
 </head>
 <body>
-
-<div id="map"></div>
-<div id="controls">
-  <label>出行方式（profile）:
+  <div id="map"></div>
+  <div id="controls">
+    <label>交通模式:</label>
     <select id="profile">
-      <option value="mapbox/walking">步行 (walking)</option>
-      <option value="mapbox/cycling">骑行 (cycling)</option>
-      <option value="mapbox/driving">驾车 (driving)</option>
-    </select>
-  </label>
-  <label>等时分钟数（最大 4 段，<=60）:
-    <input id="contours" type="text" placeholder="例如：10,20,30">
-  </label>
-  <button id="go">生成等时圈</button>
-  <div style="margin-top:8px;font-size:12px;color:#555;">
-    勿频繁点击（API 限制 300 req/min）‍
+      <option value="driving">Driving</option>
+      <option value="cycling">Cycling</option>
+      <option value="walking">Walking</option>
+    </select><br>
+    <label>时间 (分钟):</label>
+    <input type="number" id="minutes" value="10" min="1" max="60"><br>
+    <button id="clear">清除Isochrone</button>
   </div>
-</div>
-<script>
-  mapboxgl.accessToken = 'pk.eyJ1Ijoiemhhb2JvIiwiYSI6ImNqaW85NzNrdDA3OXczcHQ5aTZvYmtjc2gifQ.ummEQxsRIweCIdv9CRRzOw';
-  const map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/light-v11',
-    center: [118.796877, 32.060255],  // 南京市中心经纬度
-    zoom: 12
-  });
 
-  // 添加标记，标记南京中心
-  const marker = new mapboxgl.Marker({color: '#d13a6e'})
-    .setLngLat([118.796877, 32.060255])
-    .addTo(map);
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1Ijoiemhhb2JvIiwiYSI6ImNqaW85NzNrdDA3OXczcHQ5aTZvYmtjc2gifQ.ummEQxsRIweCIdv9CRRzOw';
 
-  // 添加空的 geojson source 和 fill layer
-  map.on('load', () => {
-    map.addSource('iso', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] }
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v11',
+      center: [118.796877, 32.060255], // 南京经纬度
+      zoom: 12
     });
-    map.addLayer({
-      id: 'iso-fill',
-      type: 'fill',
-      source: 'iso',
-      paint: {
-        'fill-color': ['get', ['properties', 'fill']],
-        'fill-opacity': ['get', ['properties', 'fill-opacity']],
+
+    let isochroneLayerId = "isochrone-layer";
+
+    // 用户点击地图生成Isochrone
+    map.on('click', async (e) => {
+      const lngLat = e.lngLat;
+      const profile = document.getElementById('profile').value;
+      const minutes = document.getElementById('minutes').value;
+
+      const url = `https://api.mapbox.com/isochrone/v1/mapbox/${profile}/${lngLat.lng},${lngLat.lat}?contours_minutes=${minutes}&polygons=true&access_token=${mapboxgl.accessToken}`;
+      
+      const response = await fetch(url);
+      const data = await response.json();
+
+      // 清除旧的Isochrone
+      if (map.getLayer(isochroneLayerId)) {
+        map.removeLayer(isochroneLayerId);
+        map.removeSource(isochroneLayerId);
+      }
+
+      // 添加新的Isochrone图层
+      map.addSource(isochroneLayerId, {
+        type: "geojson",
+        data: data
+      });
+
+      map.addLayer({
+        id: isochroneLayerId,
+        type: "fill",
+        source: isochroneLayerId,
+        paint: {
+          "fill-color": "#5a3fc0",
+          "fill-opacity": 0.4
+        }
+      });
+    });
+
+    // 清除按钮
+    document.getElementById('clear').addEventListener('click', () => {
+      if (map.getLayer(isochroneLayerId)) {
+        map.removeLayer(isochroneLayerId);
+        map.removeSource(isochroneLayerId);
       }
     });
-    map.addLayer({
-      id: 'iso-line',
-      type: 'line',
-      source: 'iso',
-      paint: {
-        'line-color': ['get', ['properties', 'color']],
-        'line-width': 2
-      }
-    });
-  });
-
-  document.getElementById('go').addEventListener('click', () => {
-    const profile = document.getElementById('profile').value;
-    const contours = document.getElementById('contours').value;
-    if (!/^\d+(\s*,\s*\d+){0,3}$/.test(contours)) {
-      alert('请输入最多 4 段、逗号分隔的整数（例如 5 或 5,15,30）');
-      return;
-    }
-    const mins = contours.split(',').map(s => parseInt(s.trim())).filter(n => n>=1 && n<=60);
-    if (mins.length === 0) { alert('请填写合法分钟数'); return; }
-    fetchIsochrone(profile, mins);
-  });
-
-  async function fetchIsochrone(profile, contours_minutes) {
-    const coords = marker.getLngLat();
-    const base = 'https://api.mapbox.com/isochrone/v1/';
-    const url = `${base}${profile}/${coords.lng},${coords.lat}` +
-                `?contours_minutes=${contours_minutes.join(',')}` +
-                `&polygons=true&denoise=1` +
-                `&access_token=${mapboxgl.accessToken}`;
-    try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`${resp.statusText}`);
-      const data = await resp.json();
-      map.getSource('iso').setData(data);
-    } catch (e) {
-      alert('请求失败：' + e.message);
-    }
-  }
-</script>
-
+  </script>
 </body>
 </html>
