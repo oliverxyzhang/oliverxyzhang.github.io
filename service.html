@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf‑8">
+  <title>南京 Isochrone 体验</title>
+  <meta name="viewport" content="width=device-width,initial‑scale=1">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.18.2/mapbox-gl.css" rel="stylesheet">
+  <style>
+    body, html {margin:0;height:100%;}
+    #map {position:absolute;top:0;bottom:0;width:100%;}
+    #controls {
+      position: absolute; top: 20px; left: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 12px; border-radius: 6px;
+      font-family: sans-serif;
+      box-shadow: 0 0 8px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+    #controls select, #controls input {
+      width: 100%; margin-top: 6px; font-size: 14px;
+    }
+    #controls button {
+      margin-top: 10px; width: 100%;
+      padding: 6px; font-size: 15px;
+      background-color: #3887be; color: #fff;
+      border: none; border-radius: 4px;
+      cursor: pointer;
+    }
+    #controls button:hover { background-color: #2a6e90; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="controls">
+  <label>出行方式（profile）:
+    <select id="profile">
+      <option value="mapbox/walking">步行 (walking)</option>
+      <option value="mapbox/cycling">骑行 (cycling)</option>
+      <option value="mapbox/driving">驾车 (driving)</option>
+    </select>
+  </label>
+  <label>等时分钟数（最大 4 段，<=60）:
+    <input id="contours" type="text" placeholder="例如：10,20,30">
+  </label>
+  <button id="go">生成等时圈</button>
+  <div style="margin-top:8px;font-size:12px;color:#555;">
+    勿频繁点击（API 限制 300 req/min）‍
+  </div>
+</div>
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.18.2/mapbox-gl.js"></script>
+<script>
+  mapboxgl.accessToken = 'eyJ1Ijoiemhhb2JvIiwiYSI6ImNqaW85NzNrdDA3OXczcHQ5aTZvYmtjc2gifQ';
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/light-v11',
+    center: [118.796877, 32.060255],  // 南京市中心经纬度
+    zoom: 12
+  });
+
+  // 添加标记，标记南京中心
+  const marker = new mapboxgl.Marker({color: '#d13a6e'})
+    .setLngLat([118.796877, 32.060255])
+    .addTo(map);
+
+  // 添加空的 geojson source 和 fill layer
+  map.on('load', () => {
+    map.addSource('iso', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] }
+    });
+    map.addLayer({
+      id: 'iso-fill',
+      type: 'fill',
+      source: 'iso',
+      paint: {
+        'fill-color': ['get', ['properties', 'fill']],
+        'fill-opacity': ['get', ['properties', 'fill-opacity']],
+      }
+    });
+    map.addLayer({
+      id: 'iso-line',
+      type: 'line',
+      source: 'iso',
+      paint: {
+        'line-color': ['get', ['properties', 'color']],
+        'line-width': 2
+      }
+    });
+  });
+
+  document.getElementById('go').addEventListener('click', () => {
+    const profile = document.getElementById('profile').value;
+    const contours = document.getElementById('contours').value;
+    if (!/^\d+(\s*,\s*\d+){0,3}$/.test(contours)) {
+      alert('请输入最多 4 段、逗号分隔的整数（例如 5 或 5,15,30）');
+      return;
+    }
+    const mins = contours.split(',').map(s => parseInt(s.trim())).filter(n => n>=1 && n<=60);
+    if (mins.length === 0) { alert('请填写合法分钟数'); return; }
+    fetchIsochrone(profile, mins);
+  });
+
+  async function fetchIsochrone(profile, contours_minutes) {
+    const coords = marker.getLngLat();
+    const base = 'https://api.mapbox.com/isochrone/v1/';
+    const url = `${base}${profile}/${coords.lng},${coords.lat}` +
+                `?contours_minutes=${contours_minutes.join(',')}` +
+                `&polygons=true&denoise=1` +
+                `&access_token=${mapboxgl.accessToken}`;
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`${resp.statusText}`);
+      const data = await resp.json();
+      map.getSource('iso').setData(data);
+    } catch (e) {
+      alert('请求失败：' + e.message);
+    }
+  }
+</script>
+
+</body>
+</html>
