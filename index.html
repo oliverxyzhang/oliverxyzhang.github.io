@@ -1,687 +1,451 @@
+
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>南京市医院分布与泰森多边形分析</title>
-    <!-- MapLibre GL JS 5.6.1 -->
-    <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css" rel="stylesheet" />
-    <!-- Turf.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.0.0/turf.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
-            color: #333;
-            line-height: 1.6;
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
-        header {
-            text-align: center;
-            padding: 25px 0;
-            margin-bottom: 25px;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        h1 {
-            font-size: 2.8rem;
-            margin-bottom: 15px;
-            background: linear-gradient(to right, #ff7e5f, #feb47b);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        
-        .subtitle {
-            font-size: 1.3rem;
-            max-width: 800px;
-            margin: 0 auto;
-            color: #e0e0ff;
-        }
-        
-        .content {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 25px;
-            margin-bottom: 30px;
-        }
-        
-        #map-container {
-            height: 650px;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-            position: relative;
-        }
-        
-        #map {
-            width: 100%;
-            height: 100%;
-        }
-        
-        .info-panel {
-            background: rgba(255, 255, 255, 0.92);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .panel-title {
-            font-size: 1.6rem;
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 12px;
-            margin-bottom: 15px;
-        }
-        
-        .legend {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .legend-color {
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            border: 2px solid white;
-        }
-        
-        .hospitals {
-            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
-        }
-        
-        .voronoi {
-            background: linear-gradient(45deg, #4facfe, #00f2fe);
-        }
-        
-        .boundary {
-            background: linear-gradient(45deg, #42e695, #3bb2b8);
-        }
-        
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 15px;
-        }
-        
-        .control-btn {
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            background: #3498db;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-        }
-        
-        .control-btn:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        
-        .control-btn.toggle {
-            background: #9b59b6;
-        }
-        
-        .control-btn.toggle:hover {
-            background: #8e44ad;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 10px;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
-        }
-        
-        .stat-card {
-            text-align: center;
-            padding: 15px;
-            border-radius: 8px;
-            background: white;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-        }
-        
-        .stat-value {
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #3498db;
-        }
-        
-        .stat-label {
-            font-size: 0.95rem;
-            color: #7f8c8d;
-        }
-        
-        .hospital-list {
-            max-height: 200px;
-            overflow-y: auto;
-            margin-top: 10px;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-        }
-        
-        .hospital-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .hospital-item:last-child {
-            border-bottom: none;
-        }
-        
-        .hospital-icon {
-            min-width: 22px;
-            height: 22px;
-            background: #ff6b6b;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-        }
-        
-        footer {
-            text-align: center;
-            color: white;
-            padding: 25px 0;
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-        
-        .explanation {
-            background: rgba(255, 255, 255, 0.92);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-            margin-top: 25px;
-        }
-        
-        .explanation h2 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        
-        .explanation p {
-            margin-bottom: 15px;
-            line-height: 1.7;
-        }
-        
-        @media (max-width: 992px) {
-            .content {
-                grid-template-columns: 1fr;
-            }
-            
-            .info-panel {
-                order: -1;
-            }
-        }
-        
-        .map-overlay {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.85);
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            z-index: 10;
-            max-width: 300px;
-        }
-        
-        .map-overlay h3 {
-            margin-bottom: 10px;
-            color: #2c3e50;
-            border-bottom: 1px solid #3498db;
-            padding-bottom: 5px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nanjing Emergency Services Map</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css" rel="stylesheet">
+  <style>
+    body { margin: 0; padding: 0; }
+
+    /* Gray background overlay when the welcome panel is visible */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 2;
+    }
+
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+    /* Welcome Panel Style */
+    .welcome-panel {
+      position: absolute;
+      top: 50%;  /* Centering the panel vertically */
+      left: 50%; /* Centering the panel horizontally */
+      transform: translate(-50%, -50%);  /* Ensures the panel is exactly centered */
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 3;
+      width: 450px;  /* Fixed width to prevent it from becoming too wide */
+      font-family: Arial, sans-serif;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);  /* Added subtle shadow */
+    }
+
+    .welcome-panel h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .welcome-panel p {
+      font-size: 14px;
+      margin: 10px 0;
+    }
+
+    .welcome-panel button {
+      padding: 10px 20px;
+      background-color: #FF5733;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .welcome-panel button:hover {
+      background-color: #C70039;
+    }
+
+    /* Center the author info and button */
+    .author-info {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #555;
+      text-align: center;  /* Center the content */
+    }
+
+    .author-info button {
+      display: block;
+      margin: 0 auto;  /* Center the button */
+    }
+
+    /* Controls */
+    .controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 15px;
+      border-radius: 5px;
+      z-index: 2;
+      font-family: Arial, sans-serif;
+      width: 300px;
+    }
+
+    .controls h4 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .controls label {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+    }
+
+    .controls input[type="radio"] {
+      margin-right: 10px;
+    }
+
+    .controls select, .controls button {
+      width: 100%;
+      margin-top: 5px;
+    }
+
+    /* Travel Mode horizontal layout */
+    .controls .travel-mode {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Slider Styling */
+    .controls input[type="range"] {
+      width: 100%;
+    }
+
+    /* Info Panel Style */
+    .info-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px;
+      border-radius: 5px;
+      z-index: 3;
+      font-family: Arial, sans-serif;
+      width: 250px;
+    }
+
+    .info-panel h5 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .info-panel p {
+      font-size: 14px;
+      margin: 5px 0;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>南京市医院分布与泰森多边形分析</h1>
-            <p class="subtitle">使用MapLibre GL JS 5.6.1和Turf.js可视化南京市主要医院分布，并通过泰森多边形分析医院服务覆盖区域</p>
-        </header>
-        
-        <div class="content">
-            <div id="map-container">
-                <div id="map"></div>
-                <div class="map-overlay">
-                    <h3>泰森多边形说明</h3>
-                    <p>每个多边形区域表示距离该医院最近的服务区域，边界是到两个医院距离相等的点。</p>
-                    <p>点击医院点查看详细信息，使用控制面板调整显示选项。</p>
-                </div>
-            </div>
-            
-            <div class="info-panel">
-                <h2 class="panel-title">地图控制面板</h2>
-                
-                <div class="legend">
-                    <h3>图例说明</h3>
-                    <div class="legend-item">
-                        <div class="legend-color hospitals"></div>
-                        <span>医院位置</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color voronoi"></div>
-                        <span>泰森多边形区域</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color boundary"></div>
-                        <span>南京市边界</span>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <button id="toggle-voronoi" class="control-btn toggle">切换泰森多边形</button>
-                    <button id="toggle-hospitals" class="control-btn toggle">切换医院标记</button>
-                    <button id="reset-view" class="control-btn">重置视图</button>
-                    <button id="add-hospital" class="control-btn">添加模拟医院</button>
-                </div>
-                
-                <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="hospital-count">15</div>
-                        <div class="stat-label">医院数量</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="avg-area">7.2</div>
-                        <div class="stat-label">平均区域(km²)</div>
-                    </div>
-                </div>
-                
-                <div class="hospital-list">
-                    <h3>南京市主要医院</h3>
-                    <div class="hospital-item">
-                        <div class="hospital-icon"></div>
-                        <div>江苏省人民医院</div>
-                    </div>
-                    <div class="hospital-item">
-                        <div class="hospital-icon"></div>
-                        <div>南京鼓楼医院</div>
-                    </div>
-                    <div class="hospital-item">
-                        <div class="hospital-icon"></div>
-                        <div>东南大学附属中大医院</div>
-                    </div>
-                    <div class="hospital-item">
-                        <div class="hospital-icon"></div>
-                        <div>南京市第一医院</div>
-                    </div>
-                    <div class="hospital-item">
-                        <div class="hospital-icon"></div>
-                        <div>南京军区总医院</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="explanation">
-            <h2>泰森多边形分析说明</h2>
-            <p>泰森多边形（Voronoi图）是一种空间分割算法，它将空间划分为若干区域，每个区域包含一个控制点（医院），区域内任意位置到该控制点的距离小于到其他控制点的距离。</p>
-            <p>在本可视化中：</p>
-            <ul>
-                <li>每个多边形区域表示距离该医院最近的服务区域</li>
-                <li>多边形边界表示到两个相邻医院距离相等的位置</li>
-                <li>区域大小反映了医院的服务覆盖范围</li>
-                <li>颜色深浅表示该区域面积大小（深色=大区域）</li>
-            </ul>
-            <p>这种分析有助于城市规划者了解医疗资源的分布均衡性，识别服务覆盖不足的区域，并为新医院选址提供科学依据。</p>
-        </div>
-        
-        <footer>
-            <p>© 2023 南京市医疗资源分布可视化 | 使用 MapLibre GL JS 5.6.1 和 Turf.js 构建</p>
-        </footer>
+  <!-- Background Overlay (Gray) -->
+  <div class="overlay" id="overlay"></div>
+
+  <!-- Welcome Panel -->
+  <div class="welcome-panel" id="welcomePanel">
+    <h2>Welcome to Nanjing Emergency Services Map! 🏥🚒</h2>
+    <p>This map helps analyze the service areas of major hospitals and fire stations in Nanjing. It aims to assess how quickly both fire stations and hospitals can be accessed, ensuring effective emergency response.</p>
+    <p>The main features of this map include:</p>
+    <ul>
+      <li><strong>Service Areas:</strong> Mapping the coverage areas of hospitals and fire stations using the <strong>Voronoi algorithm</strong>.</li>
+      <li><strong>Accessibility Zones:</strong> Calculating the areas that can be reached within different times using the <strong>Isochrone algorithm</strong>.</li>
+    </ul>
+    <p>This tool allows us to analyze the coordination between fire stations and hospitals in emergency situations, especially within critical time windows.</p>
+    <div class="author-info">
+      <button id="closeWelcomePanel">Close Welcome Panel</button>
+      <p><em>Created by Xingye Zhang</em></p>
+      <p>Nanjing High School</p>
+    </div>
+  </div>
+
+  <div id="map"></div>
+  <div class="controls">
+    <h4>Select Service Layers</h4>
+    <label><input type="checkbox" id="show-hospitals" checked><span style="background-color: #FF0000; width: 20px; height: 20px; display: inline-block;"></span> Hospitals</label>
+    <label><input type="checkbox" id="show-firestations" checked><span style="background-color: #0000FF; width: 20px; height: 20px; display: inline-block;"></span> Fire Stations</label>
+    <label><input type="checkbox" id="show-service-area-hospitals" checked><span style="background-color: #FF7F00; width: 20px; height: 20px; display: inline-block;"></span> Service Area for Hospitals</label>
+    <label><input type="checkbox" id="show-service-area-firestations" checked><span style="background-color: #008000; width: 20px; height: 20px; display: inline-block;"></span> Service Area for Fire Stations</label>
+
+    <h4>Accessibility Settings</h4>
+    <div class="travel-mode">
+      <label><input type="radio" name="travel-mode" value="walking" checked> Walking</label>
+      <label><input type="radio" name="travel-mode" value="cycling"> Cycling</label>
+      <label><input type="radio" name="travel-mode" value="driving"> Driving</label>
     </div>
 
-    <script>
-        // 南京市边界坐标（简化版）
-        const nanjingBoundary = {
-            type: "Feature",
-            properties: {},
-            geometry: {
-                type: "Polygon",
-                coordinates: [[
-                    [118.30, 32.60], // 西北
-                    [119.20, 32.60], // 东北
-                    [119.20, 31.30], // 东南
-                    [118.30, 31.30], // 西南
-                    [118.30, 32.60]  // 西北（闭合）
-                ]]
-            }
-        };
-        
-        // 模拟医院数据（名称、坐标）
-        const hospitals = [
-            {name: "江苏省人民医院", coordinates: [118.78, 32.05], address: "广州路300号"},
-            {name: "南京鼓楼医院", coordinates: [118.79, 32.07], address: "中山路321号"},
-            {name: "东南大学附属中大医院", coordinates: [118.80, 32.06], address: "丁家桥87号"},
-            {name: "南京市第一医院", coordinates: [118.79, 32.03], address: "长乐路68号"},
-            {name: "南京军区总医院", coordinates: [118.83, 32.04], address: "中山东路305号"},
-            {name: "南京市儿童医院", coordinates: [118.78, 32.04], address: "广州路72号"},
-            {name: "南京市中医院", coordinates: [118.80, 32.03], address: "大明路157号"},
-            {name: "江苏省中医院", coordinates: [118.79, 32.05], address: "汉中路155号"},
-            {name: "南京明基医院", coordinates: [118.75, 32.02], address: "建邺区河西大街71号"},
-            {name: "南京市妇幼保健院", coordinates: [118.80, 32.05], address: "莫愁路天妃巷123号"},
-            {name: "南京市口腔医院", coordinates: [118.79, 32.05], address: "中央路30号"},
-            {name: "南京市脑科医院", coordinates: [118.78, 32.05], address: "广州路264号"},
-            {name: "南京市第二医院", coordinates: [118.82, 32.04], address: "钟阜路1-1号"},
-            {name: "南京市胸科医院", coordinates: [118.81, 32.04], address: "广州路215号"},
-            {name: "江北人民医院", coordinates: [118.70, 32.15], address: "大厂街道葛关路552号"}
-        ];
-        
-        // 初始化地图
-        const map = new maplibregl.Map({
-            container: 'map',
-            style: 'https://demotiles.maplibre.org/style.json', // 使用默认样式
-            center: [118.7969, 32.0603], // 南京市中心坐标
-            zoom: 11,
-            maxBounds: [[118.0, 31.0], [119.5, 32.7]] // 限制视图范围
-        });
-        
-        // 添加导航控件
-        map.addControl(new maplibregl.NavigationControl(), 'top-right');
-        
-        // 存储图层ID
-        let voronoiLayerId = null;
-        
-        // 地图加载完成后添加数据
-        map.on('load', function() {
-            // 添加南京市边界
-            map.addSource('nanjing-boundary', {
-                type: 'geojson',
-                data: nanjingBoundary
-            });
-            
-            map.addLayer({
-                id: 'boundary-fill',
-                type: 'fill',
-                source: 'nanjing-boundary',
-                paint: {
-                    'fill-color': '#42e695',
-                    'fill-opacity': 0.15
-                }
-            });
-            
-            map.addLayer({
-                id: 'boundary-line',
-                type: 'line',
-                source: 'nanjing-boundary',
-                paint: {
-                    'line-color': '#3bb2b8',
-                    'line-width': 3,
-                    'line-dasharray': [2, 2]
-                }
-            });
-            
-            // 添加医院点
-            const hospitalFeatures = hospitals.map(hospital => ({
-                type: 'Feature',
-                properties: {
-                    name: hospital.name,
-                    address: hospital.address
-                },
-                geometry: {
-                    type: 'Point',
-                    coordinates: hospital.coordinates
-                }
-            }));
-            
-            map.addSource('hospitals', {
-                type: 'geojson',
-                data: {
-                    type: 'FeatureCollection',
-                    features: hospitalFeatures
-                }
-            });
-            
-            // 医院点图层
-            map.addLayer({
-                id: 'hospitals',
-                type: 'circle',
-                source: 'hospitals',
-                paint: {
-                    'circle-radius': 8,
-                    'circle-color': '#ff6b6b',
-                    'circle-stroke-width': 2,
-                    'circle-stroke-color': '#ffffff'
-                }
-            });
-            
-            // 医院标签图层
-            map.addLayer({
-                id: 'hospital-labels',
-                type: 'symbol',
-                source: 'hospitals',
-                layout: {
-                    'text-field': ['get', 'name'],
-                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                    'text-size': 12,
-                    'text-offset': [0, 1.5],
-                    'text-anchor': 'top'
-                },
-                paint: {
-                    'text-color': '#d43f3f',
-                    'text-halo-color': 'rgba(255, 255, 255, 0.8)',
-                    'text-halo-width': 2
-                }
-            });
-            
-            // 生成泰森多边形
-            generateVoronoi();
-            
-            // 添加点击医院弹出信息框
-            map.on('click', 'hospitals', (e) => {
-                const name = e.features[0].properties.name;
-                const address = e.features[0].properties.address;
-                const coordinates = e.features[0].geometry.coordinates.slice();
-                
-                // 确保弹出框不会覆盖被点击的点
-                while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-                    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
-                }
-                
-                new maplibregl.Popup()
-                    .setLngLat(coordinates)
-                    .setHTML(`
-                        <div style="padding: 10px;">
-                            <h3 style="margin-bottom: 5px; color: #d43f3f;">${name}</h3>
-                            <p><strong>地址:</strong> ${address}</p>
-                            <p style="margin-top: 8px; font-size: 0.9em; color: #666;">
-                                点击地图其他位置关闭此信息
-                            </p>
-                        </div>
-                    `)
-                    .addTo(map);
-            });
-            
-            // 改变鼠标指针样式
-            map.on('mouseenter', 'hospitals', () => {
-                map.getCanvas().style.cursor = 'pointer';
-            });
-            
-            map.on('mouseleave', 'hospitals', () => {
-                map.getCanvas().style.cursor = '';
-            });
-        });
-        
-        // 生成泰森多边形的函数 - 使用Turf.js
-        function generateVoronoi() {
-            // 获取医院点
-            const points = turf.featureCollection(
-                hospitals.map(h => turf.point(h.coordinates))
-            );
-            
-            // 创建泰森多边形 - 使用南京市边界作为bbox
-            const voronoiPolygons = turf.voronoi(points, {
-                bbox: [118.30, 31.30, 119.20, 32.60]
-            });
-            
-            // 计算每个多边形的面积并添加到属性中
-            voronoiPolygons.features = voronoiPolygons.features.map(feature => {
-                const area = turf.area(feature);
-                feature.properties.area = area;
-                return feature;
-            });
-            
-            // 添加到地图
-            if (map.getSource('voronoi')) {
-                map.getSource('voronoi').setData(voronoiPolygons);
-            } else {
-                map.addSource('voronoi', {
-                    type: 'geojson',
-                    data: voronoiPolygons
-                });
-                
-                map.addLayer({
-                    id: 'voronoi-layer',
-                    type: 'fill',
-                    source: 'voronoi',
-                    paint: {
-                        'fill-color': [
-                            'interpolate',
-                            ['linear'],
-                            ['get', 'area'],
-                            5000000, '#a8d8ff',  // 较小区域
-                            15000000, '#4facfe', // 中等区域
-                            25000000, '#0150c9'  // 较大区域
-                        ],
-                        'fill-opacity': 0.35,
-                        'fill-outline-color': '#0150c9'
-                    }
-                });
-                
-                map.addLayer({
-                    id: 'voronoi-outline',
-                    type: 'line',
-                    source: 'voronoi',
-                    paint: {
-                        'line-color': '#0150c9',
-                        'line-width': 1.5,
-                        'line-dasharray': [2, 2]
-                    }
-                });
-                
-                voronoiLayerId = 'voronoi-layer';
-            }
-            
-            // 更新平均区域面积
-            const totalArea = voronoiPolygons.features.reduce((sum, feature) => sum + feature.properties.area, 0);
-            const avgArea = (totalArea / voronoiPolygons.features.length / 1000000).toFixed(1);
-            document.getElementById('avg-area').textContent = avgArea;
+    <label>Time:</label>
+    <input type="range" id="isochrone-slider" min="5" max="60" value="10" step="5">
+    <span id="time-value">10 minutes</span>
+
+    <button id="get-accessibility">Get Accessibility Area</button>
+  </div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1Ijoiemhhb2JvIiwiYSI6ImNqaW85NzNrdDA3OXczcHQ5aTZvYmtjc2gifQ.ummEQxsRIweCIdv9CRRzOw';
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [118.8062, 32.0603],
+      zoom: 12
+    });
+
+    const hospitals = [
+      { name: "南京儿童医院", coordinates: [118.7739688, 32.0525487] },
+      { name: "南京同仁医院", coordinates: [118.8223394, 31.8986387] },
+      { name: "仙林医院", coordinates: [118.9035714, 32.0988245] }
+    ];
+
+    const firestations = [
+      { name: "南京市高新区公安消防大队", coordinates: [118.7084046, 32.166258] },
+      { name: "Unnamed Fire Station", coordinates: [118.7961713, 32.042108] },
+      { name: "金陵石化消防支队三大队", coordinates: [118.9157447, 32.145272] }
+    ];
+
+    const hospitalGeoJSON = {
+      type: 'FeatureCollection',
+      features: hospitals.map(hospital => ({
+        type: 'Feature',
+        properties: { name: hospital.name },
+        geometry: { type: 'Point', coordinates: hospital.coordinates }
+      }))
+    };
+
+    const firestationGeoJSON = {
+      type: 'FeatureCollection',
+      features: firestations.map(firestation => ({
+        type: 'Feature',
+        properties: { name: firestation.name },
+        geometry: { type: 'Point', coordinates: firestation.coordinates }
+      }))
+    };
+
+    map.on('load', () => {
+      // Add hospital layer with red circles
+      map.addSource('hospitals', { type: 'geojson', data: hospitalGeoJSON });
+      map.addLayer({
+        id: 'hospitals-layer',
+        type: 'circle',
+        source: 'hospitals',
+        paint: {
+          'circle-color': '#FF0000',  // Red color for hospitals
+          'circle-radius': 8
         }
-        
-        // 添加模拟医院
-        document.getElementById('add-hospital').addEventListener('click', function() {
-            // 在南京市范围内随机生成一个点
-            const newHospital = {
-                name: `模拟医院${hospitals.length + 1}`,
-                coordinates: [
-                    118.30 + Math.random() * (119.20 - 118.30),
-                    31.30 + Math.random() * (32.60 - 31.30)
-                ],
-                address: "随机生成位置"
-            };
-            
-            hospitals.push(newHospital);
-            
-            // 更新医院计数
-            document.getElementById('hospital-count').textContent = hospitals.length;
-            
-            // 重新生成泰森多边形
-            generateVoronoi();
-            
-            // 更新医院源
-            const hospitalFeatures = hospitals.map(hospital => ({
-                type: 'Feature',
-                properties: {
-                    name: hospital.name,
-                    address: hospital.address
-                },
-                geometry: {
-                    type: 'Point',
-                    coordinates: hospital.coordinates
-                }
-            }));
-            
-            map.getSource('hospitals').setData({
-                type: 'FeatureCollection',
-                features: hospitalFeatures
-            });
-        });
-        
-        // 切换泰森多边形显示
-        document.getElementById('toggle-voronoi').addEventListener('click', function() {
-            if (voronoiLayerId) {
-                const voronoiVisibility = map.getLayoutProperty('voronoi-layer', 'visibility');
-                if (voronoiVisibility === 'visible') {
-                    map.setLayoutProperty('voronoi-layer', 'visibility', 'none');
-                    map.setLayoutProperty('voronoi-outline', 'visibility', 'none');
-                    this.textContent = '显示泰森多边形';
-                } else {
-                    map.setLayoutProperty('voronoi-layer', 'visibility', 'visible');
-                    map.setLayoutProperty('voronoi-outline', 'visibility', 'visible');
-                    this.textContent = '隐藏泰森多边形';
-                }
-            }
-        });
-        
-        // 切换医院标记显示
-        document.getElementById('toggle-hospitals').addEventListener('click', function() {
-            const visibility = map.getLayoutProperty('hospitals', 'visibility');
-            if (visibility === 'visible') {
-                map.setLayoutProperty('hospitals', 'visibility', 'none');
-                map.setLayoutProperty('hospital-labels', 'visibility', 'none');
-                this.textContent = '显示医院标记';
-            } else {
-                map.setLayoutProperty('hospitals', 'visibility', 'visible');
-                map.setLayoutProperty('hospital-labels', 'visibility', 'visible');
-                this.textContent = '隐藏医院标记';
-            }
-        });
-        
-        // 重置视图
-        document.getElementById('reset-view').addEventListener('click', function() {
-            map.flyTo({
-                center: [118.7969, 32.0603],
-                zoom: 11,
-                essential: true
-            });
-        });
-    </script>
+      });
+
+      // Add fire station layer with blue circles
+      map.addSource('firestations', { type: 'geojson', data: firestationGeoJSON });
+      map.addLayer({
+        id: 'firestations-layer',
+        type: 'circle',
+        source: 'firestations',
+        paint: {
+          'circle-color': '#0000FF',  // Blue color for fire stations
+          'circle-radius': 8
+        }
+      });
+
+      // Generate Voronoi (Service Area) for hospitals and fire stations
+      generateServiceArea(hospitals, 'service-area-hospitals', '#FF7F00');
+      generateServiceArea(firestations, 'service-area-firestations', '#008000');
+    });
+
+    function generateServiceArea(points, layerId, color) {
+      const pointCollection = turf.featureCollection(
+        points.map(p => turf.point(p.coordinates))
+      );
+      const voronoiPolygons = turf.voronoi(pointCollection, { bbox: [118.49, 31.8, 119.1, 32.32] });
+
+
+
+      map.addSource(layerId, {
+        type: 'geojson',
+        data: voronoiPolygons
+      });
+
+      map.addLayer({
+        id: layerId,
+        type: 'line',
+        source: layerId,
+        paint: {
+          'line-color': color,
+          'line-width': 3
+        }
+      });
+    }
+
+    // Update slider value display
+    document.getElementById('isochrone-slider').addEventListener('input', function() {
+      document.getElementById('time-value').textContent = this.value + ' minutes';
+      updateAccessibilityArea();
+    });
+
+    // Update accessibility when travel mode or slider changes
+    document.querySelectorAll('input[name="travel-mode"]').forEach((radio) => {
+      radio.addEventListener('change', updateAccessibilityArea);
+    });
+
+    // Show/hide layers based on checkbox
+    document.getElementById('show-hospitals').addEventListener('change', (e) => {
+      map.setLayoutProperty('hospitals-layer', 'visibility', e.target.checked ? 'visible' : 'none');
+    });
+
+    document.getElementById('show-firestations').addEventListener('change', (e) => {
+      map.setLayoutProperty('firestations-layer', 'visibility', e.target.checked ? 'visible' : 'none');
+    });
+
+    document.getElementById('show-service-area-hospitals').addEventListener('change', (e) => {
+      map.setLayoutProperty('service-area-hospitals', 'visibility', e.target.checked ? 'visible' : 'none');
+    });
+
+    document.getElementById('show-service-area-firestations').addEventListener('change', (e) => {
+      map.setLayoutProperty('service-area-firestations', 'visibility', e.target.checked ? 'visible' : 'none');
+    });
+
+    // Close Welcome Panel on button click
+    document.getElementById('closeWelcomePanel').addEventListener('click', () => {
+      document.getElementById('welcomePanel').style.display = 'none';
+      document.getElementById('overlay').style.display = 'none';
+    });
+
+    let marker = null;
+
+    map.on('click', async (e) => {
+      const coordinates = e.lngLat;
+
+      if (marker) {
+        marker.remove();
+      }
+
+      // Create the dynamic pulsing marker
+      marker = new mapboxgl.Marker({ element: createPulsingDot() })
+        .setLngLat(coordinates)
+        .addTo(map);
+
+      await updateAccessibilityArea();  // Update accessibility when marker is placed
+    });
+
+    // Hover event to show names and close previous popup
+    // map.on('mouseenter', 'hospitals-layer', (e) => {
+    //   const coordinates = e.lngLat;
+    //   const hospitalName = e.features[0].properties.name;
+    //   map.getCanvas().style.cursor = 'pointer';
+
+    //   // Remove any existing popups before showing the new one
+    //   if (map.getPopup()) map.getPopup().remove();
+
+    //   new mapboxgl.Popup()
+    //     .setLngLat(coordinates)
+    //     .setHTML(hospitalName)
+    //     .addTo(map);
+    // });
+
+    // map.on('mouseenter', 'firestations-layer', (e) => {
+    //   const coordinates = e.lngLat;
+    //   const firestationName = e.features[0].properties.name;
+    //   map.getCanvas().style.cursor = 'pointer';
+
+    //   // Remove any existing popups before showing the new one
+    //   if (map.getPopup()) map.getPopup().remove();
+
+    //   new mapboxgl.Popup()
+    //     .setLngLat(coordinates)
+    //     .setHTML(firestationName)
+    //     .addTo(map);
+    // });
+
+    map.on('mouseleave', 'hospitals-layer', () => {
+      map.getCanvas().style.cursor = '';
+    });
+
+    map.on('mouseleave', 'firestations-layer', () => {
+      map.getCanvas().style.cursor = '';
+    });
+
+    // Create pulsing dot as a custom marker element
+    function createPulsingDot() {
+      const size = 50;  // Size of the pulsing dot
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const context = canvas.getContext('2d');
+
+      let t = 0; // Animation time
+      function render() {
+        t += 0.02; // Increase time
+        const radius = (size / 2) * 0.3;
+        const outerRadius = (size / 2) * 0.7 * Math.abs(Math.sin(t)) + radius;
+
+        context.clearRect(0, 0, size, size);
+        context.beginPath();
+        context.arc(size / 2, size / 2, outerRadius, 0, Math.PI * 2);
+        context.fillStyle = `rgba(255, 200, 200, ${1 - Math.abs(Math.sin(t))})`;
+        context.fill();
+
+        context.beginPath();
+        context.arc(size / 2, size / 2, radius, 0, Math.PI * 2);
+        context.fillStyle = 'rgba(255, 100, 100, 1)';
+        context.strokeStyle = 'white';
+        context.lineWidth = 2 + 4 * (1 - Math.abs(Math.sin(t)));
+        context.fill();
+        context.stroke();
+
+        // Repainting the canvas
+        requestAnimationFrame(render);
+      }
+      render();
+
+      return canvas;
+    }
+
+    // Update accessibility area (replaces isochrone)
+    async function updateAccessibilityArea() {
+      const travelMode = document.querySelector('input[name="travel-mode"]:checked').value;
+      const time = document.getElementById('isochrone-slider').value;
+
+      let coordinates;
+      if (marker) {
+        coordinates = marker.getLngLat();
+      } else {
+        coordinates = map.getCenter();  // Default to map center if no marker
+      }
+
+      const url = `https://api.mapbox.com/isochrone/v1/mapbox/${travelMode}/${coordinates.lng},${coordinates.lat}?contours_minutes=${time}&polygons=true&access_token=${mapboxgl.accessToken}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data && data.features) {
+        const accessibilityLayer = {
+          id: 'accessibility-layer',
+          type: 'fill',
+          source: {
+            type: 'geojson',
+            data: data
+          },
+          paint: {
+            'fill-color': '#3bb2d0',
+            'fill-opacity': 0.3
+          }
+        };
+
+        // Remove existing accessibility layer and add the new one
+        if (map.getLayer('accessibility-layer')) {
+          map.removeLayer('accessibility-layer');
+          map.removeSource('accessibility-layer');
+        }
+
+        map.addLayer(accessibilityLayer);
+      }
+    }
+  </script>
 </body>
 </html>
