@@ -293,30 +293,15 @@
       const pointCollection = turf.featureCollection(
         points.map(p => turf.point(p.coordinates))
       );
-      const voronoiPolygons = turf.voronoi(pointCollection, { bbox: [
-          [
-            [
-              118.59270367241402,
-              32.18017044467648
-            ],
-            [
-              118.59270367241402,
-              31.880349889082495
-            ],
-            [
-              118.96653778119298,
-              31.880349889082495
-            ],
-            [
-              118.96653778119298,
-              32.18017044467648
-            ],
-            [
-              118.59270367241402,
-              32.18017044467648
-            ]
-          ]
-        ] });
+      const voronoiPolygons = turf.voronoi(pointCollection, {
+  bbox: [
+    118.59270367241402, // minX
+    31.880349889082495, // minY
+    118.96653778119298, // maxX
+    32.18017044467648   // maxY
+  ]
+});
+
 
 
 
