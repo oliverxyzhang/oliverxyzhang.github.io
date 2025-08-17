@@ -1,4 +1,6 @@
 
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -32,9 +34,10 @@
       padding: 20px;
       border-radius: 10px;
       z-index: 3;
-      width: 450px;  /* Fixed width to prevent it from becoming too wide */
+      width: 500px;  /* Fixed width to prevent it from becoming too wide */
       font-family: Arial, sans-serif;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);  /* Added subtle shadow */
+      line-height: 1.5;
     }
 
     .welcome-panel h2 {
@@ -270,8 +273,11 @@
         type: 'circle',
         source: 'hospitals',
         paint: {
-          'circle-color': '#FF0000',  // Red color for hospitals
-          'circle-radius': 8
+            'circle-color': '#FF0000',
+            'circle-radius': 8,
+            'circle-blur': 0.1,
+            'circle-stroke-color': 'rgba(255,255,255,0.8)',
+            'circle-stroke-width': 3
         }
       });
 
@@ -282,8 +288,11 @@
         type: 'circle',
         source: 'firestations',
         paint: {
-          'circle-color': '#0000FF',  // Blue color for fire stations
-          'circle-radius': 8
+            'circle-color': '#0000FF',
+            'circle-radius': 8,
+            'circle-blur': 0.1,
+            'circle-stroke-color': 'rgba(255,255,255,0.8)',
+            'circle-stroke-width': 3
         }
       });
 
@@ -297,14 +306,13 @@
         points.map(p => turf.point(p.coordinates))
       );
       const voronoiPolygons = turf.voronoi(pointCollection, {
- bbox: [
-  118.66373215308204,
-  31.93731579464535,  
-  118.96653778119298, 
-  32.18017044467648   
-]
-
-});
+        bbox: [
+        118.66373215308204,
+        31.93731579464535,  
+        118.96653778119298, 
+        32.18017044467648   
+        ]
+    });
 
 
 
@@ -322,7 +330,7 @@
           'line-color': color,
           'line-width': 3
         }
-      });
+      }, 'hospitals-layer');
     }
 
     // Update slider value display
@@ -376,34 +384,57 @@
       await updateAccessibilityArea();  // Update accessibility when marker is placed
     });
 
-    // Hover event to show names and close previous popup
-    // map.on('mouseenter', 'hospitals-layer', (e) => {
-    //   const coordinates = e.lngLat;
-    //   const hospitalName = e.features[0].properties.name;
-    //   map.getCanvas().style.cursor = 'pointer';
+// 复用一个 Popup，避免重复创建
+const infoPopup = new mapboxgl.Popup({
+  closeButton: true,
+  closeOnClick: true
+});
 
-    //   // Remove any existing popups before showing the new one
-    //   if (map.getPopup()) map.getPopup().remove();
+// 鼠标样式 - 进入可点图层时显示手型
+map.on('mouseenter', 'hospitals-layer', () => {
+  map.getCanvas().style.cursor = 'pointer';
+});
+map.on('mouseenter', 'firestations-layer', () => {
+  map.getCanvas().style.cursor = 'pointer';
+});
 
-    //   new mapboxgl.Popup()
-    //     .setLngLat(coordinates)
-    //     .setHTML(hospitalName)
-    //     .addTo(map);
-    // });
+// 点击医院点，显示名称
+map.on('click', 'hospitals-layer', (e) => {
+  const feature = e.features && e.features[0];
+  if (!feature) return;
 
-    // map.on('mouseenter', 'firestations-layer', (e) => {
-    //   const coordinates = e.lngLat;
-    //   const firestationName = e.features[0].properties.name;
-    //   map.getCanvas().style.cursor = 'pointer';
+  // 处理跨经度复制时坐标偏移问题
+  const coordinates = feature.geometry.coordinates.slice();
+  const name = feature.properties.name;
 
-    //   // Remove any existing popups before showing the new one
-    //   if (map.getPopup()) map.getPopup().remove();
+  while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+  }
 
-    //   new mapboxgl.Popup()
-    //     .setLngLat(coordinates)
-    //     .setHTML(firestationName)
-    //     .addTo(map);
-    // });
+  infoPopup
+    .setLngLat(coordinates)
+    .setHTML(`<strong>${name}</strong>`)
+    .addTo(map);
+});
+
+// 点击消防站点，显示名称
+map.on('click', 'firestations-layer', (e) => {
+  const feature = e.features && e.features[0];
+  if (!feature) return;
+
+  const coordinates = feature.geometry.coordinates.slice();
+  const name = feature.properties.name;
+
+  while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+    coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+  }
+
+  infoPopup
+    .setLngLat(coordinates)
+    .setHTML(`<strong>${name}</strong>`)
+    .addTo(map);
+});
+
 
     map.on('mouseleave', 'hospitals-layer', () => {
       map.getCanvas().style.cursor = '';
@@ -476,7 +507,7 @@
           },
           paint: {
             'fill-color': '#3bb2d0',
-            'fill-opacity': 0.3
+            'fill-opacity': 0.5
           }
         };
 
@@ -486,7 +517,7 @@
           map.removeSource('accessibility-layer');
         }
 
-        map.addLayer(accessibilityLayer);
+        map.addLayer(accessibilityLayer, 'hospitals-layer');
       }
     }
   </script>
